@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker API 诊断工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        h2 { color: #667eea; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover { background: #5568d3; }
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Worker API 诊断工具</h1>
+
+    <div class="card">
+        <h2>配置信息</h2>
+        <label>Worker URL:</label>
+        <input type="text" id="workerUrl" value="https://temp-email-api.20210308.xyz" placeholder="https://your-worker.workers.dev">
+
+        <label>API 类型:</label>
+        <select id="apiType">
+            <option value="admin">admin (/admin/mails)</option>
+            <option value="user">user (/user_api/mails)</option>
+            <option value="api">api (/api/mails)</option>
+        </select>
+
+        <label>密码:</label>
+        <input type="password" id="password" value="YUJANsex." placeholder="输入密码">
+
+        <button onclick="testWorker()">测试 Worker API</button>
+
+        <div id="result"></div>
+    </div>
+
+    <div class="card">
+        <h2>📝 测试说明</h2>
+        <p><strong>测试项目：</strong></p>
+        <ol>
+            <li>URL 格式检查</li>
+            <li>域名解析测试</li>
+            <li>API 端点可用性</li>
+            <li>认证测试</li>
+        </ol>
+    </div>
+
+    <script>
+        async function testWorker() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="warning">正在测试...</div>';
+
+            let workerUrl = document.getElementById('workerUrl').value.trim();
+            const apiType = document.getElementById('apiType').value;
+            const password = document.getElementById('password').value;
+
+            const tests = [];
+
+            // 测试 1: URL 格式检查
+            tests.push(`<h3>测试 1: URL 格式检查</h3>`);
+            try {
+                const url = new URL(workerUrl);
+                tests.push(`✅ URL 格式正确: ${url.href}`);
+
+                // 移除尾部斜杠
+                workerUrl = workerUrl.replace(/\/+$/, '');
+                tests.push(`✅ 标准化后的 URL: ${workerUrl}`);
+            } catch (e) {
+                tests.push(`❌ URL 格式错误: ${e.message}`);
+                resultDiv.innerHTML = `<div class="error">${tests.join('<br>')}</div>`;
+                return;
+            }
+
+            // 测试 2: 构建 API URL
+            tests.push(`<h3>测试 2: API 端点</h3>`);
+            let apiEndpoint;
+            let headers = {};
+
+            if (apiType === 'admin') {
+                apiEndpoint = `${workerUrl}/admin/mails?limit=5`;
+                headers['x-admin-auth'] = password;
+                tests.push(`✅ API 端点: ${apiEndpoint}`);
+                tests.push(`✅ 认证方式: x-admin-auth`);
+            } else if (apiType === 'user') {
+                apiEndpoint = `${workerUrl}/user_api/mails?limit=5`;
+                headers['x-admin-auth'] = password;
+                tests.push(`✅ API 端点: ${apiEndpoint}`);
+                tests.push(`✅ 认证方式: x-admin-auth`);
+            } else {
+                apiEndpoint = `${workerUrl}/api/mails?limit=5`;
+                headers['Authorization'] = `Bearer ${password}`;
+                tests.push(`✅ API 端点: ${apiEndpoint}`);
+                tests.push(`✅ 认证方式: Bearer Token`);
+            }
+
+            // 测试 3: 无认证请求（测试端点是否存在）
+            tests.push(`<h3>测试 3: 端点可用性测试（无认证）</h3>`);
+            try {
+                const response = await fetch(apiEndpoint);
+                tests.push(`✅ HTTP 状态码: ${response.status}`);
+
+                if (response.status === 401 || response.status === 403) {
+                    tests.push(`✅ 端点存在！返回 ${response.status} 说明需要认证（正常）`);
+                } else if (response.status === 404) {
+                    tests.push(`❌ 404 错误：端点不存在！`);
+                    tests.push(`⚠️ 请检查：`);
+                    tests.push(`   1. Worker URL 是否正确`);
+                    tests.push(`   2. API 类型是否选对`);
+                    tests.push(`   3. Worker 是否正确部署`);
+                } else if (response.status === 200) {
+                    tests.push(`✅ 端点可访问且不需要认证！`);
+                }
+
+                const text = await response.text();
+                if (text) {
+                    tests.push(`📄 响应内容: <pre>${text.substring(0, 200)}${text.length > 200 ? '...' : ''}</pre>`);
+                }
+            } catch (e) {
+                tests.push(`❌ 请求失败: ${e.message}`);
+                tests.push(`⚠️ 可能原因：`);
+                tests.push(`   1. Worker URL 错误`);
+                tests.push(`   2. 网络连接问题`);
+                tests.push(`   3. CORS 限制`);
+                resultDiv.innerHTML = `<div class="error">${tests.join('<br>')}</div>`;
+                return;
+            }
+
+            // 测试 4: 带认证请求
+            tests.push(`<h3>测试 4: 认证测试</h3>`);
+            try {
+                const response = await fetch(apiEndpoint, { headers });
+                tests.push(`✅ HTTP 状态码: ${response.status}`);
+
+                if (response.ok) {
+                    tests.push(`✅ 认证成功！`);
+                    const data = await response.json();
+                    tests.push(`📧 邮件数量: ${data.results?.length || data.data?.length || 0}`);
+                    tests.push(`📄 响应数据: <pre>${JSON.stringify(data, null, 2).substring(0, 500)}...</pre>`);
+                } else if (response.status === 401 || response.status === 403) {
+                    tests.push(`❌ 认证失败：密码错误`);
+                    tests.push(`⚠️ 请检查密码是否正确`);
+                } else {
+                    tests.push(`❌ 请求失败: ${response.status}`);
+                }
+            } catch (e) {
+                tests.push(`❌ 认证请求失败: ${e.message}`);
+            }
+
+            // 显示结果
+            const allSuccess = !tests.join('').includes('❌');
+            const className = allSuccess ? 'success' : (tests.join('').includes('✅') ? 'warning' : 'error');
+            resultDiv.innerHTML = `<div class="result ${className}">${tests.join('<br>')}</div>`;
+        }
+    </script>
+</body>
+</html>

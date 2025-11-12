@@ -1,0 +1,28 @@
+name = "mail-monitor"
+compatibility_date = "2024-01-01"
+
+# Pages 配置
+pages_build_output_dir = "public"
+
+# KV Namespace 绑定
+# 注意：KV namespace 需要在 Cloudflare Pages Dashboard 中绑定
+# 不要在这里配置，否则会导致部署失败
+#
+# 正确的绑定方式：
+# 1. 在 Cloudflare Dashboard: Workers & Pages -> KV -> Create namespace (名称: MAIL_KV)
+# 2. 进入你的 Pages 项目: Settings -> Functions -> KV namespace bindings
+# 3. 添加绑定: Variable name = MAIL_KV, KV namespace = MAIL_KV
+#
+# [[kv_namespaces]]
+# binding = "MAIL_KV"
+# id = "YOUR_KV_NAMESPACE_ID"
+
+# 环境变量（需要在 Cloudflare Pages Dashboard 中配置）
+# Settings -> Environment variables
+#
+# 必须配置的环境变量：
+# - WORKER_URL
+# - API_TYPE
+# - ADMIN_PASSWORD (或 JWT_PASSWORD)
+# - TELEGRAM_BOT_TOKEN
+# - TELEGRAM_CHAT_ID

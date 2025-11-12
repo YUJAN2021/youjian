@@ -1,0 +1,23 @@
+{
+  "name": "mail-monitor-cloudflare",
+  "version": "1.0.0",
+  "description": "邮件监控系统 - Cloudflare Pages 部署版本",
+  "scripts": {
+    "dev": "wrangler pages dev public --kv MAIL_KV",
+    "deploy": "wrangler pages deploy public",
+    "build": "echo 'No build step required for static site'"
+  },
+  "keywords": [
+    "mail",
+    "monitor",
+    "cloudflare",
+    "pages",
+    "telegram",
+    "verification-code"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
